@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 打刻の入口ページ（2026-11-02）。iPhone のホーム画面に「打刻アプリ」のアイコンで置くためだけのページ -->
+<!-- 打刻画面（GAS）は Google の枠の中なので、ホーム画面用のアイコンを付けられない。このページに付けて、開いたらすぐ打刻画面へ移す -->
+<!-- 本人専用の合い言葉（u・s）は URL の # の後ろで受け取る。# の後ろはサーバーへ送られないので、ここ（GitHub）には残らない -->
+<title>打刻</title>
+<meta name="apple-mobile-web-app-title" content="打刻">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<style>
+body{margin:0;background:#f5f4f0;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;color:#1a1a1a;padding:16px}
+.box{max-width:420px;margin:24px auto;background:#fff;border-radius:20px;padding:20px 18px;text-align:center}
+.box img{width:96px;height:96px;border-radius:22px}
+h1{font-size:20px;margin:12px 0 4px}
+.lead{font-size:14px;color:#5f5e5a;margin:0 0 16px}
+ol{text-align:left;font-size:16px;line-height:1.8;padding-left:1.4em;margin:0 0 16px}
+ol b{color:#185FA5}
+.note{font-size:12px;color:#888780;line-height:1.6;margin:12px 0 0}
+.go{display:block;width:100%;border:0;border-radius:14px;padding:14px;font-size:16px;font-weight:700;background:#2B9AE4;color:#fff;font-family:inherit}
+.err{font-size:15px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="box" id="app"></div>
+<script>
+// 本番の打刻画面（打刻アプリの公開先「無題」＝会社内の全員）。公開先を作り直したらここも直す
+var DAKOKU_URL = 'https://script.google.com/a/macros/tpn.jp/s/AKfycbxqR9dx0RE-NELQQzKjKUINf-2aKFzvmeCG_xFEQGEd1QsGV3yz0Fn8QKozwVgpX-EeLQ/exec';
+
+var p = {};
+location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+  var i = kv.indexOf('=');
+  if (i < 0) { if (kv) p[kv] = '1'; return; }
+  p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+});
+var ok = /^[UW][A-Z0-9]+$/.test(p.u || '') && /^[A-Za-z0-9_-]{10,40}$/.test(p.s || '');
+var app = document.getElementById('app');
+
+function open_() {
+  location.replace(DAKOKU_URL + '?u=' + encodeURIComponent(p.u) + '&s=' + encodeURIComponent(p.s));
+}
+
+if (!ok) {
+  app.innerHTML = '<p class="err">このリンクは使えません。<br>Slack の「打刻・予定報告」のメッセージの［開く］から、打刻画面のいちばん下の「ホーム画面に置く」を押してください。</p>';
+} else if (p.setup) {
+  // ホーム画面に置く手順を見せる。置かれる URL から setup を外しておき、ホーム画面から開いたときはすぐ打刻画面へ移る
+  // 念のため、setup が残ったまま置かれても、押してから10分すぎたら（t＝打刻画面で押した時刻）手順は出さずに打刻画面へ
+  if (!(Date.now() - Number(p.t || 0) < 10 * 60 * 1000)) { open_(); }
+  else {
+    history.replaceState(null, '', location.pathname + '#u=' + encodeURIComponent(p.u) + '&s=' + encodeURIComponent(p.s));
+    app.innerHTML =
+      '<img src="apple-touch-icon.png" alt="">' +
+      '<h1>ホーム画面に置く</h1>' +
+      '<p class="lead">この画面のまま、次の順に押してください</p>' +
+      '<ol><li>画面の下の <b>共有ボタン</b>（□に↑）</li><li><b>「ホーム画面に追加」</b></li><li>右上の <b>［追加］</b></li></ol>' +
+      '<button class="go" id="go">打刻画面を開く</button>' +
+      '<p class="note">このページはあなた専用です。ほかの人に送らないでください。<br>Safari 以外（Slack の中など）で開いているときは、「…」→「Safari で開く」を先に押してください。</p>';
+    document.getElementById('go').onclick = open_;
+  }
+} else {
+  open_();
+}
+</script>
+</body>
+</html>
